@@ -1,15 +1,23 @@
 from rest_framework import serializers
-from watchlist_app.models import WatchList
+from watchlist_app.models import WatchList, StreamPlatform, Review
 from watchlist_app.api.validations import WatchListValidations
 
 
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        exclude = ['watchlist']
+
+
 class WatchListSerializer(serializers.ModelSerializer):
-    len_name = serializers.SerializerMethodField(method_name='len_name')
+    len_name = serializers.SerializerMethodField(method_name='get_len_name')
+    reviews = ReviewSerializer(many=True, read_only=True)
 
     class Meta:
         model = WatchList
         fields = "__all__"
-        read_only_fields = ['id', 'len_name', 'created_at']
+        extra_fields = ['len_name']
+        read_only_fields = ['id', 'created_at']
         required_fields = ['title', 'storyLine']
 
         @staticmethod
@@ -27,5 +35,19 @@ class WatchListSerializer(serializers.ModelSerializer):
         validators = [WatchListValidations.validate_title, WatchListValidations.validate_description,
                       WatchListValidations.validate_equals]
 
-    def len_name(self, obj):
+    @staticmethod
+    def get_len_name(obj):
         return len(obj.title)
+
+
+class StreamPlatformSerializer(serializers.HyperlinkedModelSerializer):
+    watchlist = WatchListSerializer(many=True, read_only=True)
+    #watchlist = serializers.HyperlinkedRelatedField(many=True, read_only=True, view_name='movie_details')
+
+    class Meta:
+        model = StreamPlatform
+        fields = "__all__"
+        read_only_fields = ['id']
+        required_fields = ['name', 'about', 'webSite']
+
+
